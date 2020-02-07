@@ -1,0 +1,58 @@
+#!/bin/bash
+
+# Usage: ./build
+#
+# Do not run this as root. It executes sudo when necessary.
+#
+# This script builds the docker image curtmcd/lilypond-buildenv:latest.
+# If an image already exists by that name, it is replaced.
+#
+# Container(s) can then be instantiated using the script "./run".
+
+DOCKER_USER=curtmcd
+DOCKER_NAME=lilypond-buildenv
+DOCKER_FULLNAME=$DOCKER_USER/$DOCKER_NAME
+
+EPM_MIRROR=https://mirrors.wikimedia.org/ubuntu/ubuntu/pool/universe/e/extractpdfmark
+EPM_SOURCE=extractpdfmark_1.0.3.orig.tar.gz
+
+URW_MIRROR=http://git.ghostscript.com
+URW_LOCAL=urw-core35-fonts
+
+# Run docker as root and exit on error
+run_docker() {
+    if ! sudo docker "$@"; then
+	echo >&2 "Error running docker; exiting"
+	exit 1
+    fi
+}
+
+fetch() {
+    if [ -n "$(which wget)" ]; then
+	wget "$1"
+    elif [ -n "$(which curl)" ]; then
+	curl -O "$1"
+    else
+        echo >&2 "Please install either wget or curl"
+        exit 1
+    fi
+}
+
+if [ ! -e $EPM_SOURCE ] && ! fetch $EPM_MIRROR/$EPM_SOURCE; then
+    echo >&2 "Unable to download $EPM_SOURCE; exiting"
+    exit 1
+fi
+
+if [ ! -d $URW_LOCAL ] && ! git clone $URW_MIRROR/$URW_LOCAL.git; then
+    echo >&2 "Unable to download $URW_LOCAL; exiting"
+    exit 1
+fi
+
+date +"Build started %Y-%m-%d %H:%M:%S"
+
+if run_docker build -t $DOCKER_FULLNAME .; then
+    date +"Build succeeded %Y-%m-%d %H:%M:%S"
+else
+    date +"Build FAILED %Y-%m-%d %H:%M:%S"
+    exit 1
+fi
