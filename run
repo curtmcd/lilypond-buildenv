@@ -1,27 +1,49 @@
 #!/bin/bash
 
-#------------------------------------------------------------------------------
-# This script starts a Bash shell in a container that will have all of
-# the tools and packages necessary to build LilyPond.
+#-----------------------------------------------------------------------------
+# This script starts a Bash shell in a container that has all of the tools and
+# packages necessary to build LilyPond.
 #
 # NOTE: Before running this command, the image must have been pulled or built.
 #
 # With the options below, the user's homedir is mounted in the usual place,
-# as well as the authorization files so that "sudo" works in the container.
+# The user's LilyPond git repo is assumed to be somewhere in the homedir and
+# can be worked with inside or outside the container. Changes made elsewhere
+# in the container will be lost when the main shell exits (including results
+# from "make install").
+#
+# The auth files are mapped so that "sudo" works in the container.  This
+# allows additional Ubuntu packages to be installed, etc.
+#
+# X11 programs should work with DISPLAY set to either local Unix socket or
+# remote host. For non-DNS hosts, code below adds entries from the host
+# /etc/hosts to the container.
+#-----------------------------------------------------------------------------
 
-# The user's LilyPond git repo is assumed to be somewhere in the homedir
-# so it can be worked on inside or outside of Docker. Changes made elsewhere
-# in the container will be lost when the main shell exits (including
-# results from "make install").
-#------------------------------------------------------------------------------
+IMAGE=curtmcd/lilypond-buildenv:0.1
+#IMAGE=curtmcd/lilypond-buildenv:installed
 
-IMAGE=curtmcd/lilypond-buildenv
+ADD_HOSTS=$(awk '{
+    for (i = 2; i <= NF; i++) {
+        if ($i ~ "^#" || $1 ~ "^#") next
+        if ($1 != "127.0.0.1" && $1 != "::1" && $1 != "fe00::0" &&
+            $1 != "ff00::0" && $1 != "ff02::1" && $1 != "ff02::2")
+            print "--add-host "$i":"$1
+    }
+}' /etc/hosts)
 
 sudo docker run -ti --rm \
      -u $(id -u):$(id -g) \
+     -v /etc/localtime:/etc/localtime:ro \
      -v /etc/passwd:/etc/passwd:ro \
      -v /etc/shadow:/etc/shadow:ro \
      -v /etc/group:/etc/group:ro \
+     -v /tmp/.X11-unix:/tmp/.x11-unix \
+     -e DISPLAY \
+     --device /dev/dri \
+     --device /dev/snd \
+     --device /dev/input \
      -v $HOME:$HOME \
      -w $HOME \
+     $ADD_HOSTS \
      $IMAGE

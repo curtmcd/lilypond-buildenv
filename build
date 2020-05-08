@@ -5,7 +5,7 @@
 # Do not run this as root. It executes sudo when necessary.
 #
 # This script builds the docker image curtmcd/lilypond-buildenv:latest.
-# If an image already exists by that name, it is replaced.
+# If an image already exists by that name, it is superseded.
 #
 # Container(s) can then be instantiated using the script "./run".
 
@@ -14,10 +14,10 @@ DOCKER_NAME=lilypond-buildenv
 DOCKER_FULLNAME=$DOCKER_USER/$DOCKER_NAME
 
 EPM_MIRROR=https://mirrors.wikimedia.org/ubuntu/ubuntu/pool/universe/e/extractpdfmark
-EPM_SOURCE=extractpdfmark_1.0.3.orig.tar.gz
+EPM_SOURCE=extractpdfmark_1.1.0.orig.tar.gz
 
 URW_MIRROR=http://git.ghostscript.com
-URW_LOCAL=urw-core35-fonts
+URW_SOURCE=urw-core35-fonts
 
 # Run docker as root and exit on error
 run_docker() {
@@ -43,8 +43,8 @@ if [ ! -e $EPM_SOURCE ] && ! fetch $EPM_MIRROR/$EPM_SOURCE; then
     exit 1
 fi
 
-if [ ! -d $URW_LOCAL ] && ! git clone $URW_MIRROR/$URW_LOCAL.git; then
-    echo >&2 "Unable to download $URW_LOCAL; exiting"
+if [ ! -d $URW_SOURCE ] && ! git clone $URW_MIRROR/$URW_SOURCE.git; then
+    echo >&2 "Unable to download $URW_SOURCE; exiting"
     exit 1
 fi
 
